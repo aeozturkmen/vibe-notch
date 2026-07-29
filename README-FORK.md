@@ -76,6 +76,25 @@ prefers it. Verified working.
 Observed in logs and fixed by adding the case. Not verified end-to-end — treat
 this one as a plausible fix rather than a confirmed one.
 
+### 4. Fix: sessions stayed on "Processing..." after the turn ended
+
+The most visible bug of the three. Captured across a real turn boundary:
+
+```
+18:21:23.424  Received: Stop          → waitingForInput   ✅
+18:21:26.514  Received: SubagentStop  → processing        ❌  (3.09s later)
+              … nothing until 18:33 — stuck for 11m42s
+```
+
+The hook script maps `SubagentStop` to `"processing"`, on the comment's stated
+assumption that "main session continues processing". That is wrong when a
+subagent finishes *after* the main turn already stopped: the late event drags the
+session back into `.processing`, where it stays until the next user prompt — the
+notch shows "Processing..." for a session that finished minutes ago.
+
+`SubagentStop` is now ignored when the session is already in `.waitingForInput`.
+Verified by replaying the exact sequence.
+
 ## Known issues, not fixed here
 
 Two more findings from the same investigation, left alone because they are

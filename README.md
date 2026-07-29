@@ -5,8 +5,9 @@
 >
 > **What's different:** builds with only Command Line Tools via
 > [`./scripts/build-without-xcode.sh`](scripts/build-without-xcode.sh) (no Xcode, no SwiftPM),
-> ships **without analytics or auto-update**, and fixes two bugs — sessions showing their
-> first message instead of their title, and a rejected `idle → waitingForInput` transition.
+> ships **without analytics or auto-update**, and fixes three bugs — sessions stuck on
+> "Processing..." after the turn ended, sessions showing their first message instead of
+> their title, and a rejected `idle → waitingForInput` transition.
 >
 > **See [README-FORK.md](README-FORK.md) for details.** For the signed, notarized,
 > auto-updating app, use the [official releases](https://github.com/farouqaldori/vibe-notch/releases/latest).

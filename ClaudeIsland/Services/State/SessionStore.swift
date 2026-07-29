@@ -149,7 +149,17 @@ actor SessionStore {
 
         let newPhase = event.determinePhase()
 
-        if session.phase.canTransition(to: newPhase) {
+        // A subagent that finishes *after* the main turn already stopped must not
+        // drag the session back into .processing. SubagentStop maps to "processing"
+        // on the assumption that the main session is still working, which is wrong
+        // once Stop has landed — the late event would otherwise leave the session
+        // showing "Processing..." indefinitely, until the user's next prompt.
+        let isLateSubagentStop = event.event == "SubagentStop"
+            && session.phase == .waitingForInput
+
+        if isLateSubagentStop {
+            Self.logger.debug("Ignoring SubagentStop for \(sessionId.prefix(8), privacy: .public) — main session already stopped")
+        } else if session.phase.canTransition(to: newPhase) {
             session.phase = newPhase
         } else {
             Self.logger.debug("Invalid transition: \(String(describing: session.phase), privacy: .public) -> \(String(describing: newPhase), privacy: .public), ignoring")
