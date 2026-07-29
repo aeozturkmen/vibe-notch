@@ -1,3 +1,18 @@
+> ### ⑂ Unofficial fork — builds without Xcode
+>
+> This is a fork of **[farouqaldori/vibe-notch](https://github.com/farouqaldori/vibe-notch)**,
+> not affiliated with or endorsed by the original author. All credit belongs upstream.
+>
+> **What's different:** builds with only Command Line Tools via
+> [`./scripts/build-without-xcode.sh`](scripts/build-without-xcode.sh) (no Xcode, no SwiftPM),
+> ships **without analytics or auto-update**, and fixes two bugs — sessions showing their
+> first message instead of their title, and a rejected `idle → waitingForInput` transition.
+>
+> **See [README-FORK.md](README-FORK.md) for details.** For the signed, notarized,
+> auto-updating app, use the [official releases](https://github.com/farouqaldori/vibe-notch/releases/latest).
+
+---
+
 <div align="center">
   <img src="ClaudeIsland/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" alt="Logo" width="100" height="100">
   <h3 align="center">Vibe Notch (previously Claude Island)</h3>

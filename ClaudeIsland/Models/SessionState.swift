@@ -124,14 +124,23 @@ struct SessionState: Equatable, Identifiable, Sendable {
         return sessionId
     }
 
-    /// Display title: summary > first user message > project name
+    /// Display title: desktop-app title > summary > first user message > project name
+    ///
+    /// The desktop app's own title is preferred because current Claude Code
+    /// versions no longer write `type: "summary"` records into the transcript,
+    /// which left every session showing its raw first message instead.
     var displayTitle: String {
-        conversationInfo.summary ?? conversationInfo.firstUserMessage ?? projectName
+        DesktopSessionTitles.title(forSessionId: sessionId)
+            ?? conversationInfo.summary
+            ?? conversationInfo.firstUserMessage
+            ?? projectName
     }
 
     /// Best hint for matching window title
     var windowHint: String {
-        conversationInfo.summary ?? projectName
+        DesktopSessionTitles.title(forSessionId: sessionId)
+            ?? conversationInfo.summary
+            ?? projectName
     }
 
     /// Pending tool name if waiting for approval
