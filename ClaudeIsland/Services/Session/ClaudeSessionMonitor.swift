@@ -9,9 +9,12 @@
 import AppKit
 import Combine
 import Foundation
+import os.log
 
 @MainActor
 class ClaudeSessionMonitor: ObservableObject {
+    nonisolated static let logger = Logger(subsystem: "com.claudeisland", category: "Permissions")
+
     @Published var instances: [SessionState] = []
     @Published var pendingInstances: [SessionState] = []
 
@@ -89,6 +92,42 @@ class ClaudeSessionMonitor: ObservableObject {
             guard let session = await SessionStore.shared.session(for: sessionId),
                   let permission = session.activePermission else {
                 return
+            }
+
+            HookSocketServer.shared.respondToPermission(
+                toolUseId: permission.toolUseId,
+                decision: "allow"
+            )
+
+            await SessionStore.shared.process(
+                .permissionApproved(sessionId: sessionId, toolUseId: permission.toolUseId)
+            )
+        }
+    }
+
+    /// Approve this call *and* persist the rules Claude Code would persist for
+    /// "Always allow", so matching calls stop prompting.
+    ///
+    /// The rules come from the hook payload's `permission_suggestions`, which is
+    /// Claude Code's own answer to "what would Always allow grant" — nothing is
+    /// derived here, so the granted scope matches the terminal button exactly.
+    ///
+    /// The rules are written before responding: if writing fails we still allow
+    /// the call, because the user asked for it, and the worst case is that they
+    /// get prompted again rather than something being allowed unexpectedly.
+    func approvePermissionAlways(sessionId: String) {
+        Task {
+            guard let session = await SessionStore.shared.session(for: sessionId),
+                  let permission = session.activePermission else {
+                return
+            }
+
+            let applied = PermissionSuggestionApplier.apply(
+                permission.permissionSuggestions,
+                cwd: session.cwd
+            )
+            if !applied {
+                Self.logger.warning("Always-allow rules were not persisted for \(sessionId.prefix(8), privacy: .public) — approving this call only")
             }
 
             HookSocketServer.shared.respondToPermission(

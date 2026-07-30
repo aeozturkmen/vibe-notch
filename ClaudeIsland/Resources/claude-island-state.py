@@ -141,6 +141,12 @@ def main():
         state["status"] = "waiting_for_approval"
         state["tool"] = data.get("tool_name")
         state["tool_input"] = tool_input
+        # Claude Code tells us which rules its own "Always allow" button would
+        # apply, and where they belong. Forward them so the app can offer the
+        # same choice instead of guessing at a rule.
+        suggestions = data.get("permission_suggestions")
+        if suggestions:
+            state["permission_suggestions"] = suggestions
         # tool_use_id lookup handled by Swift-side cache from PreToolUse
 
         # Send to app and wait for decision

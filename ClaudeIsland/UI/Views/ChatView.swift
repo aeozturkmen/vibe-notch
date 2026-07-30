@@ -413,6 +413,9 @@ struct ChatView: View {
             tool: tool,
             toolInput: session.pendingToolInput,
             onApprove: { approvePermission() },
+            onApproveAlways: (session.activePermission?.canAlwaysAllow ?? false)
+                ? { approvePermissionAlways() }
+                : nil,
             onDeny: { denyPermission() }
         )
     }
@@ -452,6 +455,10 @@ struct ChatView: View {
                 _ = await YabaiController.shared.focusWindow(forWorkingDirectory: session.cwd)
             }
         }
+    }
+
+    private func approvePermissionAlways() {
+        sessionMonitor.approvePermissionAlways(sessionId: sessionId)
     }
 
     private func approvePermission() {
@@ -1117,11 +1124,14 @@ struct ChatApprovalBar: View {
     let tool: String
     let toolInput: String?
     let onApprove: () -> Void
+    /// nil when Claude Code did not supply always-allow rules for this request.
+    var onApproveAlways: (() -> Void)? = nil
     let onDeny: () -> Void
 
     @State private var showContent = false
     @State private var showAllowButton = false
     @State private var showDenyButton = false
+    @State private var showAlwaysButton = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1158,6 +1168,25 @@ struct ChatApprovalBar: View {
             .opacity(showDenyButton ? 1 : 0)
             .scaleEffect(showDenyButton ? 1 : 0.8)
 
+            // Always allow — only offered when Claude Code told us which rules
+            // that would add, so the granted scope matches the terminal button.
+            if let onApproveAlways {
+                Button {
+                    onApproveAlways()
+                } label: {
+                    Text("Always allow")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.85))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.16))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .opacity(showAlwaysButton ? 1 : 0)
+                .scaleEffect(showAlwaysButton ? 1 : 0.8)
+            }
+
             // Allow button
             Button {
                 onApprove()
@@ -1184,6 +1213,9 @@ struct ChatApprovalBar: View {
             }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7).delay(0.1)) {
                 showDenyButton = true
+            }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7).delay(0.12)) {
+                showAlwaysButton = true
             }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7).delay(0.15)) {
                 showAllowButton = true

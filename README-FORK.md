@@ -95,6 +95,42 @@ notch shows "Processing..." for a session that finished minutes ago.
 `SubagentStop` is now ignored when the session is already in `.waitingForInput`.
 Verified by replaying the exact sequence.
 
+### 5. Feature: "Always allow" button
+
+Claude Code's own permission prompt offers Deny / Always allow / Allow once. The
+notch only had Allow and Deny, so accepting a tool permanently meant switching to
+the terminal — defeating the point of approving from the notch.
+
+The hook API cannot express a permanent decision: `behavior` accepts only
+`allow`, `deny` and `ask`. But the `PermissionRequest` payload carries an optional
+`permission_suggestions` array, which is Claude Code telling the hook exactly
+which rules its own "Always allow" would add and which settings file they belong
+in:
+
+```
+{ type: "addRules",
+  rules: [{ toolName: "Bash", ruleContent: "npm run test:*" }],
+  behavior: "allow",
+  destination: "localSettings" }
+```
+
+So the button applies those rules verbatim — **no rule is derived or guessed
+here**, which means the scope granted from the notch matches the scope granted
+from the terminal. `userSettings`, `projectSettings` and `localSettings` map to
+their files; `session` and `cliArg` live only inside Claude Code's process and are
+skipped rather than approximated.
+
+The button only appears when Claude Code actually supplied suggestions. Writes
+merge into `permissions.allow`, skip duplicates, are atomic, and refuse to touch a
+settings file that is not valid JSON rather than overwriting it.
+
+**Verification status:** the plumbing is verified — suggestions decode into
+`HookEvent`, both approval bars compile with the button wired, and the applier's
+file handling is straightforward. The click-through path (press the button, see
+the rule land in `settings.local.json`) has **not** been exercised end to end,
+because a synthetic permission request could not be injected. Treat this feature
+as untested until you have used it once.
+
 ## Known issues, not fixed here
 
 Two more findings from the same investigation, left alone because they are

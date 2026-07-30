@@ -14,6 +14,13 @@ struct PermissionContext: Sendable {
     let toolName: String
     let toolInput: [String: AnyCodable]?
     let receivedAt: Date
+    /// Rules Claude Code would add for "Always allow", when it supplies them.
+    var permissionSuggestions: [AnyCodable]? = nil
+
+    /// Whether "Always allow" can be offered for this request.
+    var canAlwaysAllow: Bool {
+        PermissionSuggestionApplier.canApply(permissionSuggestions)
+    }
 
     /// Format tool input for display
     var formattedInput: String? {

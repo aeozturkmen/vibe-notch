@@ -146,6 +146,32 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$STAGE/out/VibeNotch" "$APP/Contents/MacOS/VibeNotch"
 cp "$STAGE/src/Resources/claude-island-state.py" "$APP/Contents/Resources/"
 
+# App icon. Xcode would compile Assets.xcassets with actool, which Command Line
+# Tools does not ship, so build an .icns from the same PNGs with iconutil.
+ICON_SRC="$PROJECT_DIR/ClaudeIsland/Assets.xcassets/AppIcon.appiconset"
+if [ -d "$ICON_SRC" ] && command -v iconutil >/dev/null 2>&1; then
+    ICONSET="$STAGE/AppIcon.iconset"
+    mkdir -p "$ICONSET"
+    # iconutil requires this exact naming; @2x entries reuse the next size up.
+    cp "$ICON_SRC/icon_16x16.png"     "$ICONSET/icon_16x16.png"
+    cp "$ICON_SRC/icon_32x32.png"     "$ICONSET/icon_16x16@2x.png"
+    cp "$ICON_SRC/icon_32x32.png"     "$ICONSET/icon_32x32.png"
+    cp "$ICON_SRC/icon_64x64.png"     "$ICONSET/icon_32x32@2x.png"
+    cp "$ICON_SRC/icon_128x128.png"   "$ICONSET/icon_128x128.png"
+    cp "$ICON_SRC/icon_256x256.png"   "$ICONSET/icon_128x128@2x.png"
+    cp "$ICON_SRC/icon_256x256.png"   "$ICONSET/icon_256x256.png"
+    cp "$ICON_SRC/icon_512x512.png"   "$ICONSET/icon_256x256@2x.png"
+    cp "$ICON_SRC/icon_512x512.png"   "$ICONSET/icon_512x512.png"
+    cp "$ICON_SRC/icon_1024x1024.png" "$ICONSET/icon_512x512@2x.png"
+    if iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns" 2>/dev/null; then
+        echo "  app icon: built from Assets.xcassets"
+    else
+        echo "  app icon: iconutil failed, continuing without one" >&2
+    fi
+else
+    echo "  app icon: skipped (no iconutil or no icon assets)" >&2
+fi
+
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -155,6 +181,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleDisplayName</key><string>Vibe Notch Local</string>
     <key>CFBundleIdentifier</key><string>com.celestial.ClaudeIsland</string>
     <key>CFBundleExecutable</key><string>VibeNotch</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleVersion</key><string>local</string>
     <key>CFBundleShortVersionString</key><string>local</string>

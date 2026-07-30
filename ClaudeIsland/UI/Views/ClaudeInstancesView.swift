@@ -75,7 +75,8 @@ struct ClaudeInstancesView: View {
                         onChat: { openChat(session) },
                         onArchive: { archiveSession(session) },
                         onApprove: { approveSession(session) },
-                        onReject: { rejectSession(session) }
+                        onReject: { rejectSession(session) },
+                        onApproveAlways: { approveSessionAlways(session) }
                     )
                     .id(session.stableId)
                 }
@@ -107,6 +108,10 @@ struct ClaudeInstancesView: View {
         sessionMonitor.approvePermission(sessionId: session.sessionId)
     }
 
+    private func approveSessionAlways(_ session: SessionState) {
+        sessionMonitor.approvePermissionAlways(sessionId: session.sessionId)
+    }
+
     private func rejectSession(_ session: SessionState) {
         sessionMonitor.denyPermission(sessionId: session.sessionId, reason: nil)
     }
@@ -125,6 +130,7 @@ struct InstanceRow: View {
     let onArchive: () -> Void
     let onApprove: () -> Void
     let onReject: () -> Void
+    var onApproveAlways: (() -> Void)? = nil
 
     @State private var isHovered = false
     @State private var spinnerPhase = 0
@@ -280,7 +286,10 @@ struct InstanceRow: View {
                 InlineApprovalButtons(
                     onChat: onChat,
                     onApprove: onApprove,
-                    onReject: onReject
+                    onReject: onReject,
+                    onApproveAlways: (session.activePermission?.canAlwaysAllow ?? false)
+                        ? onApproveAlways
+                        : nil
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             } else {
@@ -362,10 +371,13 @@ struct InlineApprovalButtons: View {
     let onChat: () -> Void
     let onApprove: () -> Void
     let onReject: () -> Void
+    /// nil when Claude Code did not supply always-allow rules for this request.
+    var onApproveAlways: (() -> Void)? = nil
 
     @State private var showChatButton = false
     @State private var showDenyButton = false
     @State private var showAllowButton = false
+    @State private var showAlwaysButton = false
 
     var body: some View {
         HStack(spacing: 6) {
@@ -391,6 +403,25 @@ struct InlineApprovalButtons: View {
             .opacity(showDenyButton ? 1 : 0)
             .scaleEffect(showDenyButton ? 1 : 0.8)
 
+            // Always allow — shown only when Claude Code supplied the rules it
+            // would add, so the scope matches its own button.
+            if let onApproveAlways {
+                Button {
+                    onApproveAlways()
+                } label: {
+                    Text("Always")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.85))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.white.opacity(0.16))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .opacity(showAlwaysButton ? 1 : 0)
+                .scaleEffect(showAlwaysButton ? 1 : 0.8)
+            }
+
             Button {
                 onApprove()
             } label: {
@@ -412,6 +443,9 @@ struct InlineApprovalButtons: View {
             }
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7).delay(0.05)) {
                 showDenyButton = true
+            }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7).delay(0.08)) {
+                showAlwaysButton = true
             }
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7).delay(0.1)) {
                 showAllowButton = true
