@@ -92,7 +92,9 @@ struct HookInstaller {
             withJSONObject: json,
             options: [.prettyPrinted, .sortedKeys]
         ) {
-            try? data.write(to: settingsURL)
+            // Atomic: settings.json is read live by Claude Code, and a torn
+            // write would hand it a truncated file mid-session.
+            try? data.write(to: settingsURL, options: .atomic)
         }
     }
 
@@ -278,7 +280,7 @@ struct HookInstaller {
             withJSONObject: json,
             options: [.prettyPrinted, .sortedKeys]
         ) {
-            try? data.write(to: settings)
+            try? data.write(to: settings, options: .atomic)
         }
     }
 
