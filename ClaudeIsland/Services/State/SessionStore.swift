@@ -185,6 +185,39 @@ actor SessionStore {
         }
     }
 
+    /// Rebuild the session list from Claude Code's own live-session registry.
+    ///
+    /// Called at startup so a restart does not blank the notch until each session
+    /// happens to fire its next hook event. Restored sessions start `.idle`
+    /// because the registry says a session exists, not what it is doing — the
+    /// next hook event sets the real phase. History is loaded so the title and
+    /// transcript appear immediately.
+    func restoreLiveSessions() {
+        let recovered = SessionRecovery.discoverLiveSessions()
+        guard !recovered.isEmpty else { return }
+
+        var restoredCount = 0
+
+        for entry in recovered where sessions[entry.sessionId] == nil {
+            sessions[entry.sessionId] = SessionState(
+                sessionId: entry.sessionId,
+                cwd: entry.cwd,
+                projectName: URL(fileURLWithPath: entry.cwd).lastPathComponent,
+                pid: entry.pid,
+                tty: nil,
+                isInTmux: false,
+                phase: .idle
+            )
+            scheduleFileSync(sessionId: entry.sessionId, cwd: entry.cwd)
+            restoredCount += 1
+        }
+
+        if restoredCount > 0 {
+            Self.logger.info("Restored \(restoredCount) session(s) after launch")
+            publishState()
+        }
+    }
+
     private func createSession(from event: HookEvent) -> SessionState {
         SessionState(
             sessionId: event.sessionId,

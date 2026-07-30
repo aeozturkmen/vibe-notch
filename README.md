@@ -8,7 +8,8 @@
 > ships **without analytics or auto-update**, and fixes three bugs — sessions stuck on
 > "Processing..." after the turn ended, sessions showing their first message instead of
 > their title, and a rejected `idle → waitingForInput` transition. Adds an
-> **"Always allow"** button, plus an app icon for the no-Xcode build.
+> **"Always allow"** button, restores running sessions after a restart, and adds an
+> app icon for the no-Xcode build.
 >
 > **See [README-FORK.md](README-FORK.md) for details.** For the signed, notarized,
 > auto-updating app, use the [official releases](https://github.com/farouqaldori/vibe-notch/releases/latest).

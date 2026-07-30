@@ -131,6 +131,40 @@ the rule land in `settings.local.json`) has **not** been exercised end to end,
 because a synthetic permission request could not be injected. Treat this feature
 as untested until you have used it once.
 
+### 6. Fix: restarting the app dropped every running session
+
+Sessions live only in `SessionStore`'s in-memory dictionary, with no persistence.
+Quitting or restarting the app therefore emptied the notch, and a session
+reappeared only when it happened to fire its next hook event — which for a
+session deep in a long turn can be many minutes. In practice a session would
+vanish mid-work and look finished.
+
+Claude Code keeps its own registry of live sessions, one file per process:
+
+```
+<claude dir>/sessions/<pid>.json
+{ "pid": 14704, "sessionId": "…", "cwd": "…", "entrypoint": "claude-desktop", … }
+```
+
+`SessionRecovery` reads it at launch and `SessionStore.restoreLiveSessions()`
+repopulates the list, skipping entries whose process is gone so stale files do
+not resurrect dead sessions. Restored sessions start `.idle` — the registry says
+a session exists, not what it is doing — and the next hook event sets the real
+phase. History loads immediately so titles and transcripts are there.
+
+Verified: with five live sessions, a restart logged
+`Recovered 5 live session(s) from registry` / `Restored 5 session(s) after launch`
+and all five loaded their transcripts, including one that had previously
+disappeared mid-turn.
+
+### 7. Fix: settings.json was written non-atomically
+
+`HookInstaller` rewrote `~/.claude/settings.json` on every launch with a plain
+`data.write(to:)`. Claude Code reads that file live, so a torn write hands it a
+truncated file — and the installer's own fallback is to start from `{}` when the
+file does not parse, which means losing the user's settings. Both write sites now
+pass `.atomic`.
+
 ## Known issues, not fixed here
 
 Two more findings from the same investigation, left alone because they are
